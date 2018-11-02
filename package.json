@@ -1,0 +1,32 @@
+{
+  "name": "dotenv-configure",
+  "version": "0.1.0",
+  "description": "Interactive configuration of .env files",
+  "main": "bin/dotenv-configure",
+  "bin": {
+    "dotenv-configure": "bin/dotenv-configure"
+  },
+  "scripts": {
+    "dotenv-configure": "./bin/dotenv-configure"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/j-angnoe/dotenv-configure.git"
+  },
+  "keywords": [
+    "dotenv",
+    "prompt",
+    "interactive",
+    "configure"
+  ],
+  "author": "Joshua Angnoe",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/j-angnoe/dotenv-configure/issues"
+  },
+  "homepage": "https://github.com/j-angnoe/dotenv-configure#readme",
+  "dependencies": {
+    "dotenv": "^6.1.0",
+    "prompt": "^1.0.0"
+  }
+}

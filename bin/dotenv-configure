@@ -1,0 +1,163 @@
+#!/usr/bin/env node
+var fs = require('fs');
+var prompt = require('prompt');
+var {argv} = process;
+
+const dotenv = require('dotenv')
+
+if (require.main === module) {
+    main();
+} else {
+    module.exports = runQuestionnaire;
+}
+
+function main() {
+    if (!argv[2]) {
+        return help();
+    }
+    
+    var file = argv[2];
+    var output = argv[3] || argv[2]
+   
+    try { 
+
+        !fs.existsSync(file) && touch(file);
+        !fs.existsSync(output) && touch(output);
+    } catch (error) {
+        console.error('Either the input or the output file are not writable.');
+        process.exit(1);
+    }
+
+    return runQuestionnaire(file, output);
+
+}
+
+function runQuestionnaire(file, output) {
+    output = output || file;
+
+    var defaultValues = dotenv.parse(fs.readFileSync(file));
+    if (output !== file) {
+        try { 
+            Object.assign(defaultValues, dotenv.parse(fs.readFileSync(output)))
+        } catch (exception) {
+
+        }
+    }
+
+    return parseEnvFile(file, defaultValues)
+        .then(convertBlocksToPrompt)
+        .then(schema => {
+            prompt.start();
+
+            prompt.start();
+            prompt.get(schema, (err, result) => {
+                if (err) {
+                    throw new Error(err)
+                }
+                fillAnswersInFile(file, result).then(filledIn => {
+                    fs.writeFileSync(output, filledIn);
+                })
+            })
+        })
+        .catch(err => {
+            console.error(err);
+        })
+}
+
+// @fixme - this probably isnt right.
+function escapeShellArg (arg) {
+    if (arg.match(/(\s+|")/)) {
+        return arg;
+    } else {
+        return arg;
+    }
+}
+
+async function fillAnswersInFile(file, answers) {
+    var lines = fs.readFileSync(file).toString().split("\n");  
+
+    var newLines = [];
+    for (line of lines) {
+        var question = line.match(/^\s*([A-Z_0-9]+?)=\s*(.*)?\s*?/);
+        var isQuestion = !!question;
+
+        if (isQuestion) {
+            line = `${question[1]}=${escapeShellArg(answers[question[1]] || '')} ${question[3] || ''}`
+        }
+
+        newLines.push(line);
+    }
+
+    return newLines.join("\n");
+    
+}
+async function parseEnvFile(file, defaultValues) {
+    defaultValues = defaultValues || {};
+    var content = fs.readFileSync(file);
+    var lines = content.toString().split("\n");  
+
+    function* parser(lines) {
+        var preQuestionContent = [];
+
+         for (line of lines) {
+            var isEmpty = line.match(/^\s*$/);
+
+            // Allowed format;  IEEE Std 1003.1-2001 (http://pubs.opengroup.org/onlinepubs/000095399/basedefs/xbd_chap08.html)
+            var question = line.match(/^\s*([A-Z_0-9]+?)=\s*(.*)?\s*?/);
+            var isQuestion = !!question;
+
+            if (isQuestion) {
+                var key = (question[1]||'').trim()
+
+                yield {
+                    question: key,
+                    default_value: (defaultValues[key] || '').trim(),
+                    content: preQuestionContent.join("\n").trim()
+                };
+                preQuestionContent = [];
+                continue;
+            } else if (isEmpty) {
+                // Two empty strings, flush preQuestionContent
+                if (preQuestionContent.length > 0 && preQuestionContent[preQuestionContent.length-1] === '') {
+                    preQuestionContent = [];
+                    continue;
+                }
+            } 
+
+            preQuestionContent.push(line.replace(/^\s*#\s*/,''));
+        }
+    }
+
+    var blocks = [];
+    for (block of parser(lines)) {
+        blocks.push(block)
+    }
+    return blocks;
+}
+
+function convertBlocksToPrompt(blocks) {
+    return blocks.map(block => {
+        return {
+            name: block.question || '',
+            description: (block.question || '') + (block.content ? ` - ${block.content}` : ''),
+            type: 'string',
+            default: block.default_value || ''
+        };
+    }).filter(Boolean);
+}
+
+function help() {
+    console.log(`
+Dotenv configure: interactively fill in your .env files without requiring a schema file.
+
+Usage: dotenv-configure <input> [output]
+
+Example:
+dotenv-configure .env.example .env
+`)
+}
+
+
+function touch(filename) {
+    fs.closeSync(fs.openSync(filename, 'w'));
+};

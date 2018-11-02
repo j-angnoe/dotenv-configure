@@ -6,7 +6,7 @@ schema!
 
 ## Installation
 
-@todo.
+npm install --save [--global] dotenv-configure 
 
 
 ## Usage:
@@ -21,5 +21,17 @@ For example -> output editing:
 
 
 
+## Tips & Tricks:
+
+Add this to your project's package.json:
+
+```
+"scripts" : {
+    "configure" : "dotenv-configure .env.example .env"
+}
+
+```
+
+And run npm run configure after updating your code.
 
 

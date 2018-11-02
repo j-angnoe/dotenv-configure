@@ -1,6 +1,6 @@
 {
   "name": "dotenv-configure",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Interactive configuration of .env files",
   "main": "bin/dotenv-configure",
   "bin": {
